@@ -385,8 +385,8 @@ struct ItemTile: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
 
-                // AppKit drag-source overlay handles mouseDown -> beginDraggingSession.
-                AppKitDragSource(url: item.resolveURL(), icon: icon, itemID: item.id, stackID: stackID)
+                // AppKit drag overlay - intercepts drags without interfering with other events
+                DragOverlay(url: item.resolveURL(), itemID: item.id, stackID: stackID)
                     .allowsHitTesting(true)
 
                 // Hover remove button.
@@ -467,21 +467,7 @@ struct ItemTile: View {
     }
 }
 
-// MARK: - Window drag area
-
-/// NSView whose `mouseDown` hands tracking off to the window so the panel
-/// can be repositioned by dragging this region.
-struct WindowDragArea: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView { DragWindowNSView() }
-    func updateNSView(_ nsView: NSView, context: Context) {}
-}
-
-final class DragWindowNSView: NSView {
-    override var mouseDownCanMoveWindow: Bool { true }
-    override func mouseDown(with event: NSEvent) {
-        window?.performDrag(with: event)
-    }
-}
+// MARK: - Blur backdrop
 
 /// AppKit blur backdrop bridged into SwiftUI.
 struct VisualEffectBlur: NSViewRepresentable {
@@ -495,70 +481,52 @@ struct VisualEffectBlur: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
-// MARK: - AppKit drag source (reliable file drag-out)
+// MARK: - Drag overlay
 
-/// Transparent NSView overlay. On mouseDown/Drag begins a real AppKit dragging
-/// session with a `public.file-url` pasteboard writer — Finder, Mail, Slack,
-/// etc. all recognize this as a file drop. Deletes the item after successful drag.
-struct AppKitDragSource: NSViewRepresentable {
+/// Transparent AppKit overlay for intercepting drags without blocking other events.
+struct DragOverlay: NSViewRepresentable {
     let url: URL?
-    let icon: NSImage?
     let itemID: UUID
     let stackID: UUID
 
-    func makeNSView(context: Context) -> DragSourceNSView {
-        let v = DragSourceNSView()
+    func makeNSView(context: Context) -> DragOverlayNSView {
+        let v = DragOverlayNSView()
         v.url = url
-        v.icon = icon
         v.itemID = itemID
         v.stackID = stackID
         v.store = StackStore.shared
         return v
     }
-    func updateNSView(_ nsView: DragSourceNSView, context: Context) {
+
+    func updateNSView(_ nsView: DragOverlayNSView, context: Context) {
         nsView.url = url
-        nsView.icon = icon
         nsView.itemID = itemID
         nsView.stackID = stackID
     }
 }
 
-final class DragSourceNSView: NSView, NSDraggingSource {
+final class DragOverlayNSView: NSView, NSDraggingSource {
     var url: URL?
-    var icon: NSImage?
     var itemID: UUID?
     var stackID: UUID?
     var store: StackStore?
-    private var mouseDownAt: NSPoint?
-
-    override var acceptsFirstResponder: Bool { true }
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    private var isDragging = false
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        // Swallow clicks for drag-out, EXCEPT the top-right 22pt corner where the
-        // SwiftUI hover remove-button lives — let those clicks fall through to it.
-        let local = convert(point, from: superview)
-        let corner: CGFloat = 22
-        if local.x > bounds.maxX - corner && local.y > bounds.maxY - corner {
-            return nil
+        // Only intercept if we're about to drag (mouse is down and in bounds)
+        if bounds.contains(point) {
+            return self
         }
-        return self
+        return nil
     }
 
     override func mouseDown(with event: NSEvent) {
-        mouseDownAt = event.locationInWindow
-    }
-
-    override func rightMouseDown(with event: NSEvent) {
-        super.rightMouseDown(with: event)
+        // Don't start drag here, just mark that we're ready
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let down = mouseDownAt, let url = url else { return }
-        let p = event.locationInWindow
-        let dx = p.x - down.x, dy = p.y - down.y
-        guard dx * dx + dy * dy > 16 else { return }      // 4px threshold
-        mouseDownAt = nil
+        guard let url = url, !isDragging else { return }
+        isDragging = true
 
         _ = url.startAccessingSecurityScopedResource()
 
@@ -566,9 +534,11 @@ final class DragSourceNSView: NSView, NSDraggingSource {
         pbItem.setString(url.absoluteString, forType: .fileURL)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pbItem)
-        let img = icon ?? NSWorkspace.shared.icon(forFile: url.path)
+        let img = NSWorkspace.shared.icon(forFile: url.path)
         let size = NSSize(width: 64, height: 64)
         img.size = size
+
+        let p = event.locationInWindow
         let originInView = convert(p, from: nil)
         draggingItem.setDraggingFrame(
             NSRect(x: originInView.x - size.width / 2,
@@ -581,7 +551,7 @@ final class DragSourceNSView: NSView, NSDraggingSource {
     }
 
     override func mouseUp(with event: NSEvent) {
-        mouseDownAt = nil
+        isDragging = false
     }
 
     // MARK: NSDraggingSource
@@ -602,17 +572,19 @@ final class DragSourceNSView: NSView, NSDraggingSource {
         endedAt screenPoint: NSPoint,
         operation: NSDragOperation
     ) {
-        // Delete item from shelf after successful drag (operation != .generic)
+        // Delete item after successful drag
         if operation != .generic, let itemID = itemID, let stackID = stackID, let store = store {
             DispatchQueue.main.async {
                 store.removeItem(itemID, fromStack: stackID)
             }
         }
-        
+
         if let u = url {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 u.stopAccessingSecurityScopedResource()
             }
         }
+        
+        isDragging = false
     }
 }

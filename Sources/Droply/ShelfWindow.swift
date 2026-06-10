@@ -20,7 +20,7 @@ final class ShelfWindow: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.isMovableByWindowBackground = true
+        self.isMovableByWindowBackground = false
         self.isMovable = true
         self.isFloatingPanel = true
         self.level = .floating
