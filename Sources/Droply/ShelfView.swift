@@ -386,7 +386,7 @@ struct ItemTile: View {
                 }
 
                 // AppKit drag-source overlay handles mouseDown -> beginDraggingSession.
-                AppKitDragSource(url: item.resolveURL(), icon: icon)
+                AppKitDragSource(url: item.resolveURL(), icon: icon, itemID: item.id, stackID: stackID)
                     .allowsHitTesting(true)
 
                 // Hover remove button.
@@ -499,26 +499,36 @@ struct VisualEffectBlur: NSViewRepresentable {
 
 /// Transparent NSView overlay. On mouseDown/Drag begins a real AppKit dragging
 /// session with a `public.file-url` pasteboard writer — Finder, Mail, Slack,
-/// etc. all recognize this as a file drop.
+/// etc. all recognize this as a file drop. Deletes the item after successful drag.
 struct AppKitDragSource: NSViewRepresentable {
     let url: URL?
     let icon: NSImage?
+    let itemID: UUID
+    let stackID: UUID
 
     func makeNSView(context: Context) -> DragSourceNSView {
         let v = DragSourceNSView()
         v.url = url
         v.icon = icon
+        v.itemID = itemID
+        v.stackID = stackID
+        v.store = StackStore.shared
         return v
     }
     func updateNSView(_ nsView: DragSourceNSView, context: Context) {
         nsView.url = url
         nsView.icon = icon
+        nsView.itemID = itemID
+        nsView.stackID = stackID
     }
 }
 
 final class DragSourceNSView: NSView, NSDraggingSource {
     var url: URL?
     var icon: NSImage?
+    var itemID: UUID?
+    var stackID: UUID?
+    var store: StackStore?
     private var mouseDownAt: NSPoint?
 
     override var acceptsFirstResponder: Bool { true }
@@ -592,6 +602,13 @@ final class DragSourceNSView: NSView, NSDraggingSource {
         endedAt screenPoint: NSPoint,
         operation: NSDragOperation
     ) {
+        // Delete item from shelf after successful drag (operation != .generic)
+        if operation != .generic, let itemID = itemID, let stackID = stackID, let store = store {
+            DispatchQueue.main.async {
+                store.removeItem(itemID, fromStack: stackID)
+            }
+        }
+        
         if let u = url {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 u.stopAccessingSecurityScopedResource()
