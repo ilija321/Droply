@@ -11,7 +11,7 @@ final class StackStore: ObservableObject {
 
     init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("DropoverClone", isDirectory: true)
+            .appendingPathComponent("Droply", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.storageURL = dir.appendingPathComponent("stacks.json")
         load()

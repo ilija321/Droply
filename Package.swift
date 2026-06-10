@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "DropoverClone",
+    name: "Droply",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "DropoverClone",
-            path: "Sources/DropoverClone"
+            name: "Droply",
+            path: "Sources/Droply"
         )
     ]
 )

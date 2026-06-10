@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build DropoverClone.app bundle from SwiftPM executable.
+# Build Droply.app bundle from SwiftPM executable.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
 CONFIG="${CONFIG:-release}"
-APP_NAME="DropoverClone"
+APP_NAME="Droply"
 BUNDLE="${APP_NAME}.app"
 BUILD_DIR=".build"
 OUT_DIR="dist"

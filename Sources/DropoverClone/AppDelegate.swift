@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "tray.full", accessibilityDescription: "Dropover Clone")
+            button.image = NSImage(systemSymbolName: "tray.full", accessibilityDescription: "Droply Clone")
             button.imagePosition = .imageLeading
         }
         statusItem = item

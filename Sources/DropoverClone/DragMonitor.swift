@@ -1,6 +1,6 @@
 import AppKit
 
-/// Detects a "wiggle while dragging file" gesture (Dropover-style summon).
+/// Detects a "wiggle while dragging file" gesture (Droply-style summon).
 /// Tracks horizontal direction reversals during a left-mouse drag while the
 /// drag pasteboard carries a file URL. Fires `onWiggle(cursorPoint)` when the
 /// user reverses direction enough times within a short window.

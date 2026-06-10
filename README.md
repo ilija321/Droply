@@ -1,6 +1,6 @@
-# DropoverClone
+# Droply
 
-Native macOS shelf for files. Drag files in, drag them out somewhere else later. Free reimplementation, no Dropover code or assets used.
+Native macOS shelf for files. Drag files in, drag them out somewhere else later. Free reimplementation, no Droply code or assets used.
 
 ## Features
 
@@ -22,9 +22,9 @@ Native macOS shelf for files. Drag files in, drag them out somewhere else later.
 ## Build
 
 ```bash
-cd ~/Documents/dropover-clone
+cd ~/Documents/Droply
 ./build.sh
-open dist/DropoverClone.app
+open dist/Droply.app
 ```
 
 Requires macOS 13+, Swift 5.9+ (Xcode CLT installed).
@@ -37,7 +37,7 @@ For drag-detection across other apps to work, you may need to grant Accessibilit
 
 ## Why a clone vs paying
 
-Dropover is a polished commercial app — pay if you want polish, support, sync, S3 upload, etc. This clone is a from-scratch hobby reimplementation of the core idea (file shelf + multiple stacks + share). No reverse engineering, no copied code or art.
+Droply is a polished commercial app — pay if you want polish, support, sync, S3 upload, etc. This clone is a from-scratch hobby reimplementation of the core idea (file shelf + multiple stacks + share). No reverse engineering, no copied code or art.
 
 ## Roadmap
 
@@ -49,4 +49,4 @@ Dropover is a polished commercial app — pay if you want polish, support, sync,
 
 ## License
 
-MIT (your own code). Not affiliated with Dropover.
+MIT (your own code). Not affiliated with Droply.
